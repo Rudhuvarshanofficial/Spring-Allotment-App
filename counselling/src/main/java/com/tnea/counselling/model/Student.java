@@ -32,6 +32,7 @@ public class Student {
     @Max(100)
     private int thirdMark;
     private int cutoff ;
+    @NotNull
     private String studentCommunity;
     @OneToMany(mappedBy = "student")
     private List<Preference> preferences;

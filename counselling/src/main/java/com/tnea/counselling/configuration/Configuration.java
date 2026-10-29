@@ -28,10 +28,11 @@ public class Configuration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http){
         http.csrf(customizer -> customizer.disable());
         http.authorizeHttpRequests(request -> request
-                .requestMatchers("/student/register").permitAll()
-                .requestMatchers("/student/**").hasRole("STUDENT")
-                .requestMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().authenticated());
+                .requestMatchers("/api/v1/students/register", "/api/v1/colleges").permitAll()
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/students/**").hasRole("STUDENT")
+                .anyRequest().authenticated()
+        );
         http.httpBasic(Customizer.withDefaults());
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         return http.build();

@@ -39,9 +39,9 @@ public class StudentService {
         }
     }
 
-    public ResponseEntity<?> getMyDetails(Principal principle) throws UsernameNotFoundException {
+    public Student getMyDetails(Principal principle) throws UsernameNotFoundException {
         Student student = dao.findByStudentEmail(principle.getName());
         if (student == null) throw new NoRecordException(LocalTime.now(),"Not registered yet","Username not found");
-        return new ResponseEntity<>(student,HttpStatus.OK);
+        return student;
     }
 }

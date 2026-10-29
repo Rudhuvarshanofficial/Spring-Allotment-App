@@ -3,6 +3,7 @@ package com.tnea.counselling.controller;
 import com.tnea.counselling.model.College;
 import com.tnea.counselling.model.Student;
 import com.tnea.counselling.service.AdminService;
+import com.tnea.counselling.service.AllotmentService;
 import com.tnea.counselling.service.CollegeService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,23 +14,28 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("admin")
+@RequestMapping("/api/v1/admin")
 public class AdminController {
-
-    @Autowired
-    private CollegeService collegeService;
 
     @Autowired
     private AdminService service;
 
-    @GetMapping("/getStudents")
-    public ResponseEntity<List<Student>> getAllStudents(){
-        return new ResponseEntity<>(service.getAllStudents(), HttpStatus.OK);
+    @Autowired
+    private AllotmentService allotmentService;
+
+    @GetMapping("/students")
+    public ResponseEntity<List<Student>> getAllStudents() {
+        return ResponseEntity.ok(service.getAllStudents());
     }
 
-    @GetMapping("/runCounselling")
-    public ResponseEntity<?> runCounselling(){
-        return new ResponseEntity<>(service.runCounselling(),HttpStatus.OK);
+    @PostMapping("/counselling-run")
+    public ResponseEntity<?> runCounselling() {
+        return ResponseEntity.ok(service.runCounselling());
+    }
+
+    @GetMapping("/allotment/ranklist")
+    public ResponseEntity<?> rankList(){
+        return new ResponseEntity<>(allotmentService.rankList(), HttpStatus.OK);
     }
 
 }

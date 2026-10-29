@@ -17,25 +17,19 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("student")
+@RequestMapping("/api/v1/students")
 public class StudentController {
 
     @Autowired
     private StudentService service;
 
-    @Autowired
-    private PreferenceService preferenceService;
-
-
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody Student student){
-          return new ResponseEntity<>(service.register(student),HttpStatus.OK);
+          return new ResponseEntity<>(service.register(student),HttpStatus.CREATED);
     }
 
-    @GetMapping("/myDetails")
+    @GetMapping("/me")
     public ResponseEntity<?> getMyDetails(Principal principal){
-        return service.getMyDetails(principal);
+        return new ResponseEntity<>( service.getMyDetails(principal),HttpStatus.OK);
     }
-
-
 }

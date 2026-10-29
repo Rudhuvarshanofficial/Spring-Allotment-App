@@ -1,3 +1,4 @@
+
 package com.tnea.counselling.controller;
 
 import com.tnea.counselling.model.College;
@@ -9,17 +10,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("admin")
 public class CollegeController {
+
     @Autowired
     private CollegeService collegeService;
-    @PostMapping("/registerCollege")
-    public ResponseEntity<?> registerCollege(@Valid @RequestBody College college){
-        return new ResponseEntity<>(collegeService.registerCollege(college), HttpStatus.OK);
+
+    @PostMapping("/api/v1/admin/colleges")
+    public ResponseEntity<?> registerCollege( @Valid @RequestBody College college) {
+        return new ResponseEntity<>(collegeService.registerCollege(college), HttpStatus.CREATED);
     }
 
-    @GetMapping("college")
-    public ResponseEntity<?> getAllColleges(){
-        return new ResponseEntity<>(collegeService.getAllColleges(),HttpStatus.OK);
+    @GetMapping("/api/v1/colleges")
+    public ResponseEntity<?> getAllColleges() {
+        return new ResponseEntity<>(collegeService.getAllColleges(), HttpStatus.OK);
     }
 }
