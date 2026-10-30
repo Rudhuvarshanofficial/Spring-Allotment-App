@@ -1,10 +1,12 @@
 
 package com.tnea.counselling.controller;
 
-import com.tnea.counselling.model.Preference;
+import com.tnea.counselling.dto.PreferenceRequest;
+import com.tnea.counselling.dto.PreferenceResponse;
 import com.tnea.counselling.service.PreferenceService;
+
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,16 +17,29 @@ import java.util.List;
 @RequestMapping("/api/v1/students/me/preferences")
 public class PreferenceController {
 
-    @Autowired
-    private PreferenceService preferenceService;
+    private final PreferenceService preferenceService;
+
+    public PreferenceController(PreferenceService preferenceService) {
+        this.preferenceService = preferenceService;
+    }
 
     @PutMapping
-    public ResponseEntity<?> setPreference( @Valid @RequestBody List<Preference> preferences, Principal principal) throws Exception {
-        return ResponseEntity.ok(preferenceService.setPreference(preferences, principal));
+    public ResponseEntity<List<PreferenceResponse>> setPreference(
+            @Valid @RequestBody List<@Valid PreferenceRequest> preferences,
+            Principal principal) {
+
+        List<PreferenceResponse> savedPreferences =
+                preferenceService.setPreference(preferences, principal);
+
+        return ResponseEntity.ok(savedPreferences);
     }
 
     @GetMapping
-    public ResponseEntity<?> getPreference(Principal principal) {
-        return ResponseEntity.ok(preferenceService.getPreference(principal));
+    public ResponseEntity<List<PreferenceResponse>> getPreference(
+            Principal principal) {
+
+        return ResponseEntity.ok(
+                preferenceService.getPreference(principal)
+        );
     }
 }

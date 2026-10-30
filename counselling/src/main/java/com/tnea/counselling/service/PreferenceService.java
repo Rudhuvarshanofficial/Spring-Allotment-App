@@ -1,6 +1,9 @@
+
 package com.tnea.counselling.service;
 
 import com.tnea.counselling.ErrorHandling.NoRecordException;
+import com.tnea.counselling.dto.PreferenceRequest;
+import com.tnea.counselling.dto.PreferenceResponse;
 import com.tnea.counselling.model.College;
 import com.tnea.counselling.model.Course;
 import com.tnea.counselling.model.Preference;
@@ -9,48 +12,114 @@ import com.tnea.counselling.repository.CollegeDao;
 import com.tnea.counselling.repository.CourseDao;
 import com.tnea.counselling.repository.PreferenceDao;
 import com.tnea.counselling.repository.StudentDao;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class PreferenceService {
 
-    @Autowired
-    private CollegeDao collegeDao;
+    private final CollegeDao collegeDao;
+    private final CourseDao courseDao;
+    private final StudentDao studentDao;
+    private final PreferenceDao preferenceDao;
 
-    @Autowired
-    private CourseDao courseDao;
+    public PreferenceService(
+            CollegeDao collegeDao,
+            CourseDao courseDao,
+            StudentDao studentDao,
+            PreferenceDao preferenceDao) {
 
-    @Autowired
-    private StudentDao studentDao;
-
-    @Autowired
-    private PreferenceDao prefernceDao;
-
-    public List<Preference> setPreference(List<Preference> preferences, Principal principal) throws Exception {
-         Student student =studentDao.findByStudentEmail(principal.getName());
-
-         for(Preference p : preferences){
-             //p.setStudentId(student.getId());
-             College college =collegeDao.findById(p.getCollegeid()).orElseThrow(()-> new NoRecordException(LocalTime.now(),"College not registered yet","No college found"));
-             Course course = courseDao.findByCourseAndCollegeId(p.getCourseid(),p.getCollegeid());
-             if(course == null) throw new NoRecordException(LocalTime.now(),"College not registered yet","No college found");
-             p.setCollege(college);
-             p.setCourse(course);
-             p.setStudent(student);
-             prefernceDao.save(p);
-         }
-        student.setPreferences(preferences);
-        return preferences;
+        this.collegeDao = collegeDao;
+        this.courseDao = courseDao;
+        this.studentDao = studentDao;
+        this.preferenceDao = preferenceDao;
     }
 
-    public List<Preference> getPreference(Principal principal) {
-        Student student = studentDao.findByStudentEmail(principal.getName());
-        return student.getPreferences();
+    @Transactional
+    public List<PreferenceResponse> setPreference(
+            List<PreferenceRequest> requests,
+            Principal principal) {
+
+        Student student = getStudent(principal);
+
+        List<Preference> newPreferences = new ArrayList<>();
+
+        for (PreferenceRequest request : requests) {
+
+            College college = collegeDao.findById(request.collegeid())
+                    .orElseThrow(() -> new NoRecordException(
+                            LocalTime.now(),
+                            "College not found",
+                            "No college exists with the supplied ID"
+                    ));
+
+            Course course = courseDao.findByCourseAndCollegeId(
+                    request.courseid(),
+                    request.collegeid()
+            );
+
+            if (course == null) {
+                throw new NoRecordException(
+                        LocalTime.now(),
+                        "Course not found",
+                        "The course does not belong to the selected college"
+                );
+            }
+
+            Preference preference = new Preference();
+            preference.setPriority(request.priority());
+            preference.setCollegeid(request.collegeid());
+            preference.setCourseid(request.courseid());
+            preference.setCollege(college);
+            preference.setCourse(course);
+            preference.setStudent(student);
+
+            newPreferences.add(preference);
+        }
+
+        // Replace the existing list only after validating all entries.
+        preferenceDao.deleteAllByStudent(student);
+
+        List<Preference> savedPreferences =
+                preferenceDao.saveAll(newPreferences);
+
+        return savedPreferences.stream()
+                .map(PreferenceResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PreferenceResponse> getPreference(
+            Principal principal) {
+
+        Student student = getStudent(principal);
+
+        return preferenceDao
+                .findAllByStudentOrderByPriorityAsc(student)
+                .stream()
+                .map(PreferenceResponse::from)
+                .toList();
+    }
+
+    private Student getStudent(Principal principal) {
+
+        Student student =
+                studentDao.findByStudentEmail(principal.getName());
+
+        if (student == null) {
+            throw new NoRecordException(
+                    LocalTime.now(),
+                    "Student not found",
+                    "No student profile exists for the authenticated user"
+            );
+        }
+
+        return student;
     }
 }

@@ -1,12 +1,17 @@
+
 package com.tnea.counselling.service;
 
 import com.tnea.counselling.ErrorHandling.NoRecordException;
-import com.tnea.counselling.ErrorHandling.RegistrationException;
+import com.tnea.counselling.dto.CollegeRequest;
+import com.tnea.counselling.dto.CollegeResponse;
+import com.tnea.counselling.dto.CourseRequest;
+import com.tnea.counselling.dto.CourseResponse;
 import com.tnea.counselling.model.College;
 import com.tnea.counselling.model.Course;
 import com.tnea.counselling.repository.CollegeDao;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.tnea.counselling.repository.CourseDao;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -14,29 +19,85 @@ import java.util.List;
 @Service
 public class CollegeService {
 
-    @Autowired
-    private CollegeDao dao;
+    private final CollegeDao collegeDao;
+    private final CourseDao courseDao;
 
-    public College registerCollege(College college) {
-        try{
-            List<Course> courses = college.getCourse();
-            if(courses.isEmpty()) throw new NoRecordException(LocalTime.now(),"No course listed","College need a course");
-            dao.save(college);
-            for (Course c : college.getCourse()) {
-                c.setCollege(college);
-            }
-        }catch (NoRecordException e) {
-            throw e;
-        }
-        catch(Exception e){
-            throw new RegistrationException(LocalTime.now(),e.getMessage(),"College registration failed");
-        }
-        return dao.save(college);
+    public CollegeService(CollegeDao collegeDao, CourseDao courseDao) {
+        this.collegeDao = collegeDao;
+        this.courseDao = courseDao;
     }
 
-    public List<College> getAllColleges() {
-        List<College> colleges = dao.findAll();
-        if(colleges.isEmpty()) throw new NoRecordException(LocalTime.now(),"No colleges registered yet","No records on college");
-        return colleges;
+    @Transactional
+    public CollegeResponse registerCollege(CollegeRequest request) {
+
+        College college = new College();
+        college.setCollegeName(request.collegeName().trim());
+        college.setCollegeLocation(request.collegeLocation().trim());
+        college.setCollegeType(request.collegeType());
+
+        List<Course> courses = request.course()
+                .stream()
+                .map(this::mapToCourse)
+                .toList();
+
+        for (Course course : courses) {
+            course.setCollege(college);
+        }
+
+        college.setCourse(courses);
+
+        College savedCollege = collegeDao.save(college);
+
+        return CollegeResponse.from(savedCollege);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CollegeResponse> getAllColleges() {
+
+        List<College> colleges = collegeDao.findAll();
+
+        if (colleges.isEmpty()) {
+            throw new NoRecordException(
+                    LocalTime.now(),
+                    "No colleges registered yet",
+                    "No college records are available"
+            );
+        }
+
+        return colleges.stream()
+                .map(CollegeResponse::from)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CourseResponse> getCoursesByCollegeId(Integer collegeId) {
+
+        collegeDao.findById(collegeId)
+                .orElseThrow(() -> new NoRecordException(
+                        LocalTime.now(),
+                        "College not found",
+                        "No college exists with ID: " + collegeId
+                ));
+
+        return courseDao.findAllByCollege_IdOrderByCourseIdAsc(collegeId)
+                .stream()
+                .map(CourseResponse::from)
+                .toList();
+    }
+
+    private Course mapToCourse(CourseRequest request) {
+
+        Course course = new Course();
+
+        course.setCourseId(request.courseId());
+        course.setCourseName(request.courseName().trim());
+        course.setTotalSeats(request.totalSeats());
+        course.setBcSeats(request.bcSeats());
+        course.setScSeats(request.scSeats());
+        course.setMbcSeats(request.mbcSeats());
+        course.setOcSeats(request.ocSeats());
+        course.setStSeats(request.stSeats());
+
+        return course;
     }
 }

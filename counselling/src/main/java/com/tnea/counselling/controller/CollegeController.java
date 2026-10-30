@@ -1,27 +1,49 @@
 
 package com.tnea.counselling.controller;
 
-import com.tnea.counselling.model.College;
+import com.tnea.counselling.dto.CollegeRequest;
+import com.tnea.counselling.dto.CollegeResponse;
+import com.tnea.counselling.dto.CourseResponse;
 import com.tnea.counselling.service.CollegeService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
+@RequestMapping("/api/v1")
 public class CollegeController {
 
-    @Autowired
-    private CollegeService collegeService;
+    private final CollegeService collegeService;
 
-    @PostMapping("/api/v1/admin/colleges")
-    public ResponseEntity<?> registerCollege( @Valid @RequestBody College college) {
-        return new ResponseEntity<>(collegeService.registerCollege(college), HttpStatus.CREATED);
+    public CollegeController(CollegeService collegeService) {
+        this.collegeService = collegeService;
     }
 
-    @GetMapping("/api/v1/colleges")
-    public ResponseEntity<?> getAllColleges() {
-        return new ResponseEntity<>(collegeService.getAllColleges(), HttpStatus.OK);
+    @PostMapping("/admin/colleges")
+    public ResponseEntity<CollegeResponse> registerCollege(
+            @Valid @RequestBody CollegeRequest request) {
+
+        CollegeResponse response = collegeService.registerCollege(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(response);
+    }
+
+    @GetMapping("/colleges")
+    public ResponseEntity<List<CollegeResponse>> getAllColleges() {
+
+        return ResponseEntity.ok(collegeService.getAllColleges());
+    }
+
+    @GetMapping("/colleges/{collegeId}/courses")
+    public ResponseEntity<List<CourseResponse>> getCoursesByCollegeId(
+            @PathVariable Integer collegeId) {
+
+        return ResponseEntity.ok(
+                collegeService.getCoursesByCollegeId(collegeId)
+        );
     }
 }
