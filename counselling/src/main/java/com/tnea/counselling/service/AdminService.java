@@ -5,16 +5,20 @@ import com.tnea.counselling.ErrorHandling.CounsellingException;
 import com.tnea.counselling.ErrorHandling.NoRecordException;
 import com.tnea.counselling.model.*;
 import com.tnea.counselling.repository.AllotmentDao;
+import com.tnea.counselling.repository.CounsellingResultDao;
 import com.tnea.counselling.repository.CourseDao;
 import com.tnea.counselling.repository.StudentDao;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 public class AdminService {
@@ -27,6 +31,9 @@ public class AdminService {
 
     @Autowired
     private CourseDao courseDao;
+
+    @Autowired
+    private CounsellingResultDao counsellingResultDao;
 
     public List<Student> getAllStudents() {
 
@@ -68,6 +75,12 @@ public class AdminService {
                     CounsellingException.ErrorType.CONFLICT
             );
         }
+
+        // Generate a unique ID for this counselling execution.
+        String runId = UUID.randomUUID().toString();
+
+        // Store historical results for every student.
+        List<CounsellingResult> counsellingResults = new ArrayList<>();
 
         for (Allotment allotment : ranklist) {
 
@@ -139,11 +152,61 @@ public class AdminService {
 
             // Mark every student as processed, even if not allotted.
             allotment.setCounsellingProcessed(true);
+
+            // Create a permanent snapshot of this student's result.
+            counsellingResults.add(
+                    createCounsellingResult(allotment, student, runId)
+            );
         }
 
+        // Save operational allotments.
         allotmentDao.saveAll(ranklist);
 
-        return "Counselling completed successfully";
+        // Save permanent historical results.
+        // Both operations participate in the same transaction.
+        counsellingResultDao.saveAll(counsellingResults);
+
+        return "Counselling completed successfully. Run ID: " + runId;
+    }
+
+    private CounsellingResult createCounsellingResult(
+            Allotment allotment,
+            Student student,
+            String runId) {
+
+        CounsellingResult result = new CounsellingResult();
+
+        result.setRunId(runId);
+
+        result.setOriginalAllotmentId(allotment.getId());
+
+        result.setStudentId(student.getId());
+
+        result.setStudentName(student.getStudentName());
+
+        result.setStudentEmail(student.getStudentEmail());
+
+        result.setCutoff(allotment.getCutoff());
+
+        result.setMeritRank(allotment.getMeritRank());
+
+        result.setCommunity(allotment.getStudentCommunity());
+
+        result.setStatus(
+                allotment.isAlloted() ? "ALLOTTED" : "UNALLOTTED"
+        );
+
+        result.setCollegeName(allotment.getAllotedCollege());
+
+        result.setCourseName(allotment.getAllotedCourse());
+
+        result.setAllocationCategory(allotment.getAllocationCategory());
+
+        result.setPreferencePriority(
+                allotment.getAllottedPreferencePriority()
+        );
+
+        return result;
     }
 
     private Community normalizeCommunity(String community) {

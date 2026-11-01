@@ -31,3 +31,22 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Temporary files
+*.zip
+*.tmp
+*.bak
+
+# Environment secrets
+.env
+.env.*
+application-local.properties
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+# Local application credentials
+/src/main/resources/application.properties
