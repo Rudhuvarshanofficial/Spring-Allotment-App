@@ -8,22 +8,29 @@ public record CourseResponse(
         Integer courseId,
         String courseName,
         Integer totalSeats,
-        Integer bcSeats,
-        Integer scSeats,
-        Integer mbcSeats,
+        Integer counsellingSeats,
         Integer ocSeats,
+        Integer bcSeats,
+        Integer bcmSeats,
+        Integer mbcSeats,
+        Integer scSeats,
+        Integer scaSeats,
         Integer stSeats
 ) {
     public static CourseResponse from(Course course) {
+
         return new CourseResponse(
                 course.getId(),
                 course.getCourseId(),
                 course.getCourseName(),
                 course.getTotalSeats(),
-                course.getBcSeats(),
-                course.getScSeats(),
-                course.getMbcSeats(),
+                course.getCounsellingSeats(),
                 course.getOcSeats(),
+                course.getBcSeats(),
+                course.getBcmSeats(),
+                course.getMbcSeats(),
+                course.getScSeats(),
+                course.getScaSeats(),
                 course.getStSeats()
         );
     }

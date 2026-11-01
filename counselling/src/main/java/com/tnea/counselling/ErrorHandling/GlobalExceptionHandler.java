@@ -3,17 +3,17 @@ package com.tnea.counselling.ErrorHandling;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -21,6 +21,9 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(
@@ -47,7 +50,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiErrorResponse> handleMalformedRequest(
             HttpMessageNotReadableException ex,
@@ -57,6 +59,34 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "INVALID_REQUEST_BODY",
                 "Request body is missing or malformed",
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingParameter(
+            MissingServletRequestParameterException ex,
+            HttpServletRequest request) {
+
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                "MISSING_REQUEST_PARAMETER",
+                "Required request parameter is missing: " + ex.getParameterName(),
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiErrorResponse> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex,
+            HttpServletRequest request) {
+
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_PARAMETER_TYPE",
+                "Invalid value provided for parameter: " + ex.getName(),
                 request.getRequestURI(),
                 Map.of()
         );
@@ -90,6 +120,44 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(CounsellingException.class)
+    public ResponseEntity<ApiErrorResponse> handleCounsellingException(
+            CounsellingException ex,
+            HttpServletRequest request) {
+
+        HttpStatus status;
+        String errorCode;
+
+        switch (ex.getErrorType()) {
+
+            case INVALID_DATA:
+                status = HttpStatus.BAD_REQUEST;
+                errorCode = "INVALID_COUNSELLING_DATA";
+                break;
+
+            case CONFLICT:
+                status = HttpStatus.CONFLICT;
+                errorCode = "COUNSELLING_CONFLICT";
+                break;
+
+            default:
+                status = HttpStatus.INTERNAL_SERVER_ERROR;
+                errorCode = "INTERNAL_SERVER_ERROR";
+                logger.error(
+                        "Unknown counselling error type: {}",
+                        ex.getErrorType()
+                );
+        }
+
+        return buildError(
+                status,
+                errorCode,
+                ex.getMessage(),
+                request.getRequestURI(),
+                Map.of()
+        );
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiErrorResponse> handleDataConflict(
             DataIntegrityViolationException ex,
@@ -109,8 +177,12 @@ public class GlobalExceptionHandler {
             Exception ex,
             HttpServletRequest request) {
 
-        // Log the full exception on the server in a later logging step.
-        // Never expose internal exception details to API clients.
+        logger.error(
+                "Unexpected exception occurred while processing request: {} {}",
+                request.getMethod(),
+                request.getRequestURI(),
+                ex
+        );
 
         return buildError(
                 HttpStatus.INTERNAL_SERVER_ERROR,

@@ -12,5 +12,5 @@ public interface StudentDao extends JpaRepository<Student, Integer> {
 
     Student findByStudentEmail(String studentEmail);
 
-    List<Student> findAllByOrderByCutoffDesc();
+    List<Student> findAllByOrderByCutoffDescIdAsc();
 }

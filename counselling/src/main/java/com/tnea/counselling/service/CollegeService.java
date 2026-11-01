@@ -21,28 +21,34 @@ public class CollegeService {
 
     private final CollegeDao collegeDao;
     private final CourseDao courseDao;
+    private final SeatDistributionService seatDistributionService;
 
-    public CollegeService(CollegeDao collegeDao, CourseDao courseDao) {
+    public CollegeService(
+            CollegeDao collegeDao,
+            CourseDao courseDao,
+            SeatDistributionService seatDistributionService) {
+
         this.collegeDao = collegeDao;
         this.courseDao = courseDao;
+        this.seatDistributionService = seatDistributionService;
     }
 
     @Transactional
     public CollegeResponse registerCollege(CollegeRequest request) {
 
         College college = new College();
+
         college.setCollegeName(request.collegeName().trim());
         college.setCollegeLocation(request.collegeLocation().trim());
         college.setCollegeType(request.collegeType());
 
         List<Course> courses = request.course()
                 .stream()
-                .map(this::mapToCourse)
+                .map(courseRequest -> mapToCourse(
+                        courseRequest,
+                        college
+                ))
                 .toList();
-
-        for (Course course : courses) {
-            course.setCollege(college);
-        }
 
         college.setCourse(courses);
 
@@ -85,18 +91,21 @@ public class CollegeService {
                 .toList();
     }
 
-    private Course mapToCourse(CourseRequest request) {
+    private Course mapToCourse(
+            CourseRequest request,
+            College college) {
 
         Course course = new Course();
 
         course.setCourseId(request.courseId());
         course.setCourseName(request.courseName().trim());
         course.setTotalSeats(request.totalSeats());
-        course.setBcSeats(request.bcSeats());
-        course.setScSeats(request.scSeats());
-        course.setMbcSeats(request.mbcSeats());
-        course.setOcSeats(request.ocSeats());
-        course.setStSeats(request.stSeats());
+        course.setCollege(college);
+
+        seatDistributionService.distributeSeats(
+                course,
+                college.getCollegeType()
+        );
 
         return course;
     }

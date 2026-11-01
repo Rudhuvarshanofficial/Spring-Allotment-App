@@ -1,3 +1,4 @@
+
 package com.tnea.counselling.model;
 
 import jakarta.persistence.*;
@@ -8,26 +9,43 @@ import java.util.List;
 @Entity
 @Data
 public class Allotment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
     private int studentId;
-    //private String studentName;
+
     private String studentEmail;
-    //private String studentPassword;
-    //private int mathsMark;
-    //private int secondMark;
-    //private int thirdMark;
-    private int cutoff ;
+
+    private int cutoff;
+
     private String studentCommunity;
+
+    private int meritRank;
 
     @Transient
     private List<Preference> preferences;
+
     private boolean isAlloted;
+
     private String allotedCollege;
+
     private String allotedCourse;
 
-    public Allotment(){}
+    private Integer allottedCollegeId;
+
+    private Integer allottedCourseId;
+
+    private Integer allottedPreferencePriority;
+
+    private String allocationCategory;
+
+    // Prevents a completed counselling run from being executed again
+    private boolean counsellingProcessed;
+
+    public Allotment() {
+    }
 
     public Allotment(Student student) {
         this.studentId = student.getId();
@@ -36,5 +54,11 @@ public class Allotment {
         this.studentCommunity = student.getStudentCommunity();
         this.preferences = student.getPreferences();
         this.isAlloted = false;
+        this.counsellingProcessed = false;
+    }
+
+    public Allotment(Student student, int meritRank) {
+        this(student);
+        this.meritRank = meritRank;
     }
 }
